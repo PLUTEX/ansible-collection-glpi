@@ -4,6 +4,7 @@ from ansible.plugins.inventory import BaseInventoryPlugin
 from ansible.module_utils._text import to_native
 from ansible.errors import AnsibleError
 from glpi_api import GLPI, GLPIError
+from yaml import safe_load, YAMLError
 
 # Configuration parameters of a group.
 GROUP_PARAMS = ('itemtype',         # GLPI item type
@@ -13,6 +14,7 @@ GROUP_PARAMS = ('itemtype',         # GLPI item type
                 'hostname',         # how to generate inventory_hostname value
                 'vars',             # Ansible vars for the group
                 'hostvars',         # Ansible hostvars attached to group hosts
+                'customvars',       # Text field for additional hostvars
                 'children',         # Children of the group
                 'retrieve')         # Force retrieval of data
 
@@ -143,6 +145,7 @@ class InventoryModule(BaseInventoryPlugin):
               the hosts of the group from the data retrieved from the API
             * `vars`: Ansible `vars` for the group,
             * `hostvars`: Ansible host variables (`hostvars`; cummulating over groups!),
+            * `customvars`: field number to read additional hostvars from (YAML in text field),
             * `children`: group children (which are recursively parsed),
             * `retrieve`: for intermediary groups, boolean for forcing the retrieval
               of hosts
@@ -212,8 +215,25 @@ class InventoryModule(BaseInventoryPlugin):
         hosts = []
         for entry in data:
             # Generate hostvars from the current entry.
-            entry_hostvars = {param: replace_fields_values(value, entry)
+            default_hostvars = {param: replace_fields_values(value, entry)
                               for param, value in group_conf['hostvars'].items()}
+
+            # Add custom hostvars from text field
+            if 'customvars' in group_conf:
+                if not entry[group_conf.get('customvars')]:
+                    # create empty dict if text field is empty
+                    custom_hostvars = {}
+                else:
+                    # load yaml from text field
+                    try:
+                        custom_hostvars = safe_load(entry[group_conf.get('customvars')])
+                    except YAMLError as err:
+                        raise AnsibleError('GLPI: YAML Syntax error while parsing hostvars for ' + entry['1'] + " (" + entry['6'] + ")")
+                # merge hostvar dicts
+                entry_hostvars =  custom_hostvars | default_hostvars
+            else:
+                # just use default_hostvars, if customvars is not set
+                entry_hostvars = default_hostvars
 
             # Sometime returned host can be a list of host (as when retrieving
             # virtual machines). For preventing code redundancy, manage everything
