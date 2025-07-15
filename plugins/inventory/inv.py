@@ -246,4 +246,7 @@ class InventoryModule(BaseInventoryPlugin):
             for h in host:
                 #hosts.append(h.lower()) # Force host to be lowercase
                 self.inventory.add_host(h, group=group)
-                self.inventory.set_variable(h, 'glpi', entry_hostvars)
+
+                # Add hostvars directly, instead of under the glpi key
+                for key, value in entry_hostvars.items():
+                    self.inventory.set_variable(h, key, value)
