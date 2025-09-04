@@ -181,6 +181,10 @@ class InventoryModule(BaseInventoryPlugin):
                 for var, value in group_conf['vars'].items()
             ]
 
+        # Format customvars as we need it
+        if group_conf['customvars']:
+             group_conf['customvars'] = str(group_conf['customvars']).replace('$',"")
+
         # Data are retrieved when there is no children or when 'retrieve'
         # parameter is set.
         retrieve = True if not children else group_conf.get('retrieve', False)
