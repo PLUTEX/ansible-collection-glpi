@@ -64,6 +64,10 @@ def merge_parents_conf(group_conf, parents_conf):
         group_conf[param] = group_conf.get(param, {})
         group_conf[param].update(parents_conf.get(param, {}))
 
+    # Set customvars field for children
+    if parents_conf.get('customvars'):
+        group_conf['customvars'] = parents_conf.get('customvars')
+
 class InventoryModule(BaseInventoryPlugin):
     NAME = 'unistra.glpi.glpi'
 
