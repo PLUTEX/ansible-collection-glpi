@@ -233,8 +233,8 @@ class InventoryModule(BaseInventoryPlugin):
                         custom_hostvars = safe_load(entry[group_conf.get('customvars')])
                     except YAMLError as err:
                         raise AnsibleError('GLPI: YAML Syntax error while parsing hostvars for ' + entry['1'] + " (" + entry['6'] + ")")
-                # merge hostvar dicts
-                entry_hostvars =  custom_hostvars | default_hostvars
+                # merge hostvar dicts using weird syntax because of old python versions
+                entry_hostvars =  {**custom_hostvars, **default_hostvars}
             else:
                 # just use default_hostvars, if customvars is not set
                 entry_hostvars = default_hostvars
